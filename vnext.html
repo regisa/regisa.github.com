@@ -2,31 +2,61 @@
 <head>
 <title>Regis Anclades | GitHub</title>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+<script type="text/javascript" src="utils.js"></script>
 
 <style>
 BODY {margin:0;padding:0;}
-DIV {background:#CCC;margin:4px;border:solid 1px #AAA;float:left;width:20px;height:20px;font-size:10px;}
+DIV {
+	background:#999;
+	margin:5px;
+	float:left;
+	width:40px;
+	height:40px;
+}
 </style>
 
 <script type="text/javascript">
 
-/*
- * jQuery throttle / debounce - v1.1 - 3/7/2010
- * http://benalman.com/projects/jquery-throttle-debounce-plugin/
- * 
- * Copyright (c) 2010 "Cowboy" Ben Alman
- * Dual licensed under the MIT and GPL licenses.
- * http://benalman.com/about/license/
- */
-(function(b,c){var $=b.jQuery||b.Cowboy||(b.Cowboy={}),a;$.throttle=a=function(e,f,j,i){var h,d=0;if(typeof f!=="boolean"){i=j;j=f;f=c}function g(){var o=this,m=+new Date()-d,n=arguments;function l(){d=+new Date();j.apply(o,n)}function k(){h=c}if(i&&!h){l()}h&&clearTimeout(h);if(i===c&&m>e){l()}else{if(f!==true){h=setTimeout(i?k:l,i===c?e-m:e)}}}if($.guid){g.guid=j.guid=j.guid||$.guid++}return g};$.debounce=function(d,e,f){return f===c?a(d,e,false):a(d,f,e!==false)}})(this);
 
+var useShadow = false;
 
 $(function() {
+	var timer = false, time = 0.0, mouseX=500, mouseY=500;
+	function TimeTick(div, r, l, t) {
+		var c = 16 + ~~(196 * ((Math.cos((r+t)/5.0)+Math.sin((l+t)/5.0)) / 4.0 + 0.5))+'';
+		div.css({background:'rgb('+c+','+c+','+c+')'});
+	}
+	function MouseTick(div, r, l, t) {
+		var r504 = Math.floor(Math.cos((2 * r + mouseX/50.0 + t)/5.0)*11) + 11;
+		var l504 = Math.floor(Math.sin((2 * l + mouseY/50.0 + t)/5.0)*11) + 11;
+		var r522 = Math.floor(Math.cos((2 * r + mouseX/100.0 + t)/5.0)*3);
+		var l522 = Math.floor(Math.sin((2 * l + mouseY/100.0 + t)/5.0)*3);	
+		var b = (r504 + l504) / 2;
+		var m = 5 + Math.floor(Math.sin((2 * r + mouseX/100.0 + t)/5.0)*2) + Math.floor(Math.cos((2 * l + mouseY/100.0 + t)/5.0));
+		var s = 50 - 2*m;
+		var css = {top:r522+'px', left:l522+'px', borderRadius:~~b+'px', width:s+'px' , height:s+'px', margin:m+'px' };
+
+		if(useShadow)
+			css.boxShadow = r522+'px '+l522+'px 4px #777';
+		div.css(css);
+	}
+	function GridTick() {
+		time+=.2;
+			
+		for(var i=0;i<divs.length;i++)
+		{
+			var d = divs[i];
+			TimeTick(d.d, d.r, d.l, time);
+		}
+	}
+	var divs = [];
+
 	function RenderGrid() {
 		var w = $(window).width();
 		var h = $(window).height();
-		var rows = Math.floor(w/30);
-		var lines = Math.floor(h/30);
+		var rows = Math.floor(w/50);
+		var lines = Math.floor(h/50);
+		divs = [];
 		
 		$('body').empty().append(jQuery(Array(rows*lines+1).join('<div></div>')));
 		var r=-1,l=0,k=0;
@@ -41,19 +71,42 @@ $(function() {
 			}
 			me.data('r', r);
 			me.data('l', l);
-			me.text(r+':'+l)
+			//me.text(r+':'+l)
 			me.css({position:'relative'}).mouseenter(function() {
-				me.css({border:'solid 1px red'})
-				console.log(me.data('r'), me.data('l'));
+				//me.css({border:'solid 1px red'})
 			}).mouseleave(function() {
-				me.css({border:'solid 1px #333'})
+				//me.css({border:'solid 1px #333'})
 			});
+			MouseTick(me, r, l, 0);
+			TimeTick(me, r, l, 0);
+			divs.push({d:me, r:r, l:l});
 		});
+		if(timer)
+			clearInterval(timer);
+		timer = setInterval(GridTick, 200);
 	}
 	RenderGrid();
 
-	var debounced = jQuery.debounce( 250,  function(){RenderGrid();} );
-	$(window).bind( 'resize', debounced );
+	var resized = jQuery.debounce( 250,  function(){RenderGrid();} );
+	$(window).bind( 'resize', resized );
+	$(window).bind( 'click', function() {
+		if(timer)
+			clearInterval(timer);
+		else
+			timer = setInterval(GridTick, 200);
+	} );
+
+	var moved = jQuery.debounce( 50,  function(e){
+      	mouseX = e.pageX;
+      	mouseY = e.pageY;
+      	for(var i=0;i<divs.length;i++)
+		{
+			var d = divs[i];
+			MouseTick(d.d, d.r, d.l, time);
+		}
+    }); 
+	$(document).bind( 'mousemove', moved );
+	 
 })
 </script>
 
