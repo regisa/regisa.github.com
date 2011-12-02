@@ -5,9 +5,7 @@
 <script type="text/javascript" src="utils.js"></script>
 
 <style>
-BODY {margin:0;padding:0;}
 DIV {
-	background:#999;
 	margin:5px;
 	float:left;
 	width:40px;
@@ -19,34 +17,62 @@ DIV {
 
 
 var useShadow = false;
+var text = 'Coming soon... In a decade or so :)';
+var grid= {rowCount:0, lineCount:0, divs:[], lines:[], rows:[], step:0, offsetX:-20, offsetY:5};
 
 $(function() {
-	var timer = false, time = 0.0, mouseX=500, mouseY=500;
-	function TimeTick(div, r, l, t) {
-		var c = 16 + ~~(196 * ((Math.cos((r+t)/5.0)+Math.sin((l+t)/5.0)) / 4.0 + 0.5))+'';
-		div.css({background:'rgb('+c+','+c+','+c+')'});
+
+	var timer = false, time = 1000.0 * Math.random(), mouseX=500, mouseY=500, matrix = [];
+	
+	function IsOn(div) {
+		var l = div.l - grid.offsetY;
+		var r = div.r + grid.offsetX + grid.step;
+		var on = false;
+		if(r < 0 || r >= matrix.length || l < 0 || l > 6)
+			return false;
+		else
+			return (matrix[r][l] == 1);
 	}
-	function MouseTick(div, r, l, t) {
-		var r504 = Math.floor(Math.cos((2 * r + mouseX/50.0 + t)/5.0)*11) + 11;
-		var l504 = Math.floor(Math.sin((2 * l + mouseY/50.0 + t)/5.0)*11) + 11;
-		var r522 = Math.floor(Math.cos((2 * r + mouseX/100.0 + t)/5.0)*3);
-		var l522 = Math.floor(Math.sin((2 * l + mouseY/100.0 + t)/5.0)*3);	
+
+	function TimeTick(div, time) {
+		var r = 256, g = 256, b = 256;
+		r = g = b = 16 + ~~(196 * ((Math.cos((div.r+time)/5.0)+Math.sin((div.l+time)/5.0)) / 4.0 + 0.5));
+		if(IsOn(div)) {
+			r = (r + 128 * 4) / 5;
+			g = (g + 164 * 4) / 5;
+			b = (b + 255 * 4) / 5;
+			div.d.css({background:'rgb('+~~r+','+~~g+','+~~b+')', boxShadow:'inset 0 0 8px #9AC, 0 0 5px #9AC'});
+		} else {
+			div.d.css({background:'rgb('+r+','+g+','+b+')', boxShadow:'none'});
+		}
+	}
+	function MouseTick(div, time) {
+		var r504 = Math.floor(Math.cos((2 * div.r + mouseX/50.0 + time)/5.0)*11) + 11;
+		var l504 = Math.floor(Math.sin((2 * div.l + mouseY/50.0 + time)/5.0)*11) + 11;
+		var r522 = Math.floor(Math.cos((2 * div.r + mouseX/100.0 + time)/5.0)*3);
+		var l522 = Math.floor(Math.sin((2 * div.l + mouseY/100.0 + time)/5.0)*3);	
 		var b = (r504 + l504) / 2;
-		var m = 5 + Math.floor(Math.sin((2 * r + mouseX/100.0 + t)/5.0)*2) + Math.floor(Math.cos((2 * l + mouseY/100.0 + t)/5.0));
+		var m = 5 + Math.floor(Math.sin((2 * div.r + mouseX/100.0 + time)/5.0)*2) + Math.floor(Math.cos((2 * div.l + mouseY/100.0 + time)/5.0));
 		var s = 50 - 2*m;
 		var css = {top:r522+'px', left:l522+'px', borderRadius:~~b+'px', width:s+'px' , height:s+'px', margin:m+'px' };
 
 		if(useShadow)
 			css.boxShadow = r522+'px '+l522+'px 4px #777';
-		div.css(css);
+		div.d.css(css);
 	}
 	function GridTick() {
 		time+=.2;
+		grid.step++;
+		if(grid.step > matrix.length + grid.rows) {
+			time = 1000.0 * Math.random();
+			grid.step = 0;
+		}
 			
-		for(var i=0;i<divs.length;i++)
+		for(var i=0;i<grid.divs.length;i++)
 		{
-			var d = divs[i];
-			TimeTick(d.d, d.r, d.l, time);
+			var d = grid.divs[i];
+			//MouseTick(d, time);
+			TimeTick(d, time);
 		}
 	}
 	var divs = [];
@@ -54,15 +80,15 @@ $(function() {
 	function RenderGrid() {
 		var w = $(window).width();
 		var h = $(window).height();
-		var rows = Math.floor(w/50);
-		var lines = Math.floor(h/50);
-		divs = [];
+		grid.rows = Math.floor(w/50);
+		grid.lines = Math.floor(h/50);
 		
-		$('body').empty().append(jQuery(Array(rows*lines+1).join('<div></div>')));
+		$('body').empty().append(jQuery(Array(grid.rows*grid.lines+1).join('<div></div>')));
+		$('div').css({styleFloat:'left', width:'50px', height:'50px', margin:'5px'});
 		var r=-1,l=0,k=0;
 		$('div').each(function(i,v) {
 			var me = $(this);
-			if(k++ >= rows) {
+			if(k++ >= grid.rows) {
 				k=1;
 				r=0;
 				l++;
@@ -77,36 +103,77 @@ $(function() {
 			}).mouseleave(function() {
 				//me.css({border:'solid 1px #333'})
 			});
-			MouseTick(me, r, l, 0);
-			TimeTick(me, r, l, 0);
-			divs.push({d:me, r:r, l:l});
+			var x = {d:me, r:r, l:l};
+			MouseTick(x, time);
+			TimeTick(x, time);
+			grid.divs.push(x);
 		});
-		if(timer)
-			clearInterval(timer);
-		timer = setInterval(GridTick, 200);
 	}
-	RenderGrid();
-
+	
 	var resized = jQuery.debounce( 250,  function(){RenderGrid();} );
 	$(window).bind( 'resize', resized );
 	$(window).bind( 'click', function() {
-		if(timer)
+		time = 1000.0 * Math.random();
+		if(timer) {
 			clearInterval(timer);
-		else
+			timer = false;
+		}
+		else {
 			timer = setInterval(GridTick, 200);
+		}
 	} );
 
 	var moved = jQuery.debounce( 50,  function(e){
       	mouseX = e.pageX;
       	mouseY = e.pageY;
-      	for(var i=0;i<divs.length;i++)
+      	for(var i=0;i<grid.divs.length;i++)
 		{
-			var d = divs[i];
-			MouseTick(d.d, d.r, d.l, time);
+			var d = grid.divs[i];
+			MouseTick(d, time);
 		}
     }); 
 	$(document).bind( 'mousemove', moved );
-	 
+
+	var matrix = [];
+	var space = [0,0,0,0,0,0,0];
+	for(var i=0;i<text.length;i++) {
+		var c = AGFont[''+text.charCodeAt(i)];
+		var cols = parseInt(c[0]);
+		var ints = [];
+		for(var j=1;j<c.length;j++) {
+			var k = c.charCodeAt(j);
+			if(k > 57) k -= 87;
+			else k -= 48;
+			ints.push(k);
+		}
+		
+		var dots = [];
+		var l = cols * 7;
+		var next = ints.shift();
+		for(var j=0;j<l;j++)
+		{
+			if(j == next) {
+				dots.push(1);
+				if(ints.length > 0)
+					next = ints.shift();
+			} else {
+				dots.push(0);
+			}
+		}
+		for(var j=0;j<cols;j++) {
+			var col = [];
+			for(var k=0;k<7;k++)
+				col.push(dots[k*cols+j]);
+			matrix.push(col);
+		}
+		matrix.push(space);
+	}
+
+	RenderGrid();
+	//RenderText(-20, 5, 0, matrix, 250);
+	if(timer)
+		clearInterval(timer);
+	timer = setInterval(GridTick, 250);
 })
 </script>
 

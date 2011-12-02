@@ -12,7 +12,7 @@
 var	AGFont = {
 	height:7,			// font height
 	0:"40123478bcfgjknopqr",	// default char
-	32:"4",				// space char
+	32:"3",				// space char
 	33:"1012346",			// !
 	34:"3023568",			// "
 	35:"568abcdegiklmnoqs",		// #
